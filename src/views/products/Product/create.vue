@@ -1,5 +1,5 @@
 <template>
-  <div class="product-create container py-4" v-if="checkPermission(['product_update'])">
+  <div class="product-create container py-4" v-if="checkPermission(['product_store'])">
     <!-- دکمه‌های مرحله‌ای -->
     <div class="step-buttons d-flex flex-wrap justify-content-center align-items-center mb-4">
       <template v-for="(step, index) in steps" :key="index">

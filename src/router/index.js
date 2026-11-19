@@ -27,6 +27,11 @@ const routes = [
     component: () => import("@/views/users/Address/list.vue"),
   },
   {
+    path: "/products/quick-create",
+    name: "product-quick-create",
+    component: () => import("@/views/products/Product/QuickProductCreate.vue"),
+  },
+  {
     path: "/users/:id/addresses/create",
     name: "users-addresses-create",
     component: () => import("@/views/users/Address/create.vue"),
@@ -146,7 +151,7 @@ const routes = [
     name: "products-LowStockPage",
     component: () => import("@/views/products/Product/LowStockPage.vue"),
   },
-  
+
   {
     path: "/products/create",
     name: "products-create",

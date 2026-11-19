@@ -4,21 +4,27 @@
     <!-- هدر و فیلترها -->
     <div class="card mb-2 header-card">
       <div class="card-header">
-        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2 mb-3">
+        <div
+          class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2 mb-3">
           <h3 class="mb-0 page-title">
             <i class="bi bi-box-fill"></i>
             <span>مدیریت محصولات</span>
           </h3>
-         <div class="d-flex align-items-center gap-2">
-           <router-link to="/products/create" class="btn btn-success add-btn">
-            <i class="bi bi-plus"></i>
-            <span>افزودن محصول</span>
-          </router-link>
-           <router-link to="/products/export-import" class="btn btn-warning add-btn">
-            <i class="bi bi-file-check"></i>
-            <span>ورودی و خروجی</span>
-          </router-link>
-         </div>
+          <div class="d-flex flex-column flex-md-row align-items-center gap-2">
+
+            <router-link to="/products/quick-create" class="btn btn-dark add-btn">
+              <i class="bi bi-magic"></i>
+              <span>افزودن سریع محصول</span>
+            </router-link>
+            <router-link to="/products/create" class="btn btn-success add-btn">
+              <i class="bi bi-plus"></i>
+              <span>افزودن محصول</span>
+            </router-link>
+            <router-link to="/products/export-import" class="btn btn-warning add-btn">
+              <i class="bi bi-file-check"></i>
+              <span>ورودی و خروجی</span>
+            </router-link>
+          </div>
         </div>
       </div>
 
@@ -26,12 +32,8 @@
         <form @submit.prevent="getProducts()">
           <div class="row g-2">
             <div class="col-12 col-sm-6 col-md-4">
-              <input
-                v-model="filters.search"
-                type="text"
-                class="form-control search-input"
-                placeholder="جستجو بر اساس نام محصول"
-              />
+              <input v-model="filters.search" type="text" class="form-control search-input"
+                placeholder="جستجو بر اساس نام محصول" />
             </div>
             <div class="col-12 col-sm-6 col-md-2">
               <select v-model="filters.status" class="form-select">
@@ -105,9 +107,9 @@
                   <td>
                     <span :class="product.status == 'published' ? 'badge bg-success' : 'badge bg-secondary'">
                       {{ product.status == 'published' ? 'موجود' :
-                         product.status == 'unpublished' ? 'ناموجود' :
-                         product.published_at ? `انتشار در ${new Date(product.published_at).toLocaleString('fa-IR')}` :
-                         'پیش‌نویس' }}
+                        product.status == 'unpublished' ? 'ناموجود' :
+                          product.published_at ? `انتشار در ${new Date(product.published_at).toLocaleString('fa-IR')}` :
+                            'پیش‌نویس' }}
                     </span>
                   </td>
                   <td>
@@ -129,11 +131,7 @@
 
           <!-- ===== نمایش کارتی در موبایل ===== -->
           <div v-if="products.data && products.data.length > 0" class="d-md-none product-cards">
-            <div
-              v-for="product in products.data"
-              :key="product.id"
-              class="product-card"
-            >
+            <div v-for="product in products.data" :key="product.id" class="product-card">
               <div class="product-card-header">
                 <!-- تصویر محصول -->
                 <div class="product-image-wrapper">
@@ -150,14 +148,11 @@
                   <div class="product-id">شناسه: #{{ product.id }}</div>
 
                   <!-- وضعیت -->
-                  <span
-                    class="status-badge"
-                    :class="product.status == 'published' ? 'status-yes' : 'status-no'"
-                  >
+                  <span class="status-badge" :class="product.status == 'published' ? 'status-yes' : 'status-no'">
                     <i class="bi" :class="product.status == 'published' ? 'bi-check-circle-fill' : 'bi-clock-fill'"></i>
                     {{ product.status == 'published' ? 'موجود' :
-                       product.status == 'unpublished' ? 'ناموجود' :
-                       product.published_at ? 'زمان‌بندی شده' : 'پیش‌نویس' }}
+                      product.status == 'unpublished' ? 'ناموجود' :
+                        product.published_at ? 'زمان‌بندی شده' : 'پیش‌نویس' }}
                   </span>
                 </div>
               </div>
@@ -210,15 +205,9 @@
           </div>
 
           <!-- Pagination -->
-          <b-pagination
-            v-model="currentPage"
-            :total-rows="products.total"
-            v-if="products.last_page != 1"
-            :per-page="products.per_page"
-            @Update:modelValue="changePage"
-            align="center"
-            class="mt-3 pagination-responsive"
-          ></b-pagination>
+          <b-pagination v-model="currentPage" :total-rows="products.total" v-if="products.last_page != 1"
+            :per-page="products.per_page" @Update:modelValue="changePage" align="center"
+            class="mt-3 pagination-responsive"></b-pagination>
         </div>
       </div>
     </div>
@@ -531,7 +520,7 @@ onMounted(() => {
   font-size: 0.82rem;
 }
 
-.info-row > i {
+.info-row>i {
   color: #6c5ce7;
   font-size: 0.9rem;
   width: 16px;
@@ -643,7 +632,7 @@ onMounted(() => {
     font-size: 0.75rem;
   }
 
-  .info-row > i {
+  .info-row>i {
     font-size: 0.82rem;
     width: 14px;
   }
