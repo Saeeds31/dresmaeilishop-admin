@@ -55,7 +55,7 @@
           </b-form-group>
         </b-col>
         <!-- Description (Editor) -->
-        <b-col cols="12">
+        <b-col v-if="loadInit" cols="12">
           <b-form-group label="توضیح" label-for="description">
             <Editor v-model="form.description" />
             <small v-if="errors.description" class="text-danger">{{ errors.description[0] }}</small>
@@ -72,7 +72,7 @@
         </b-col>
 
         <!-- Meta Description -->
-        <b-col cols="12" md="6">
+        <b-col  cols="12" md="6">
           <b-form-group label="Meta Description" label-for="meta_description">
             <b-form-input id="meta_description" v-model="form.meta_description"
               :state="errors.meta_description ? false : null" />
@@ -129,7 +129,7 @@ let loading = ref(false);
 const route = useRoute();
 let oldImage = ref([])
 let oldImage1 = ref([])
-const form = reactive({
+const form = ref({
   title: '',
   slug: '',
   main_image: null,
@@ -153,12 +153,15 @@ const normalizer = (node) => {
     children: node.children
   }
 }
+let loadInit = ref(false);
 onMounted(async () => {
   try {
     const res = await axios.get(`/categories/${route.params.id}`)
-    Object.assign(form, res.data.data)
-    form.show_in_home = Number(res.data.data.show_in_home)
-    form.show_products_in_home = Number(res.data.data.show_products_in_home)
+    Object.assign(form.value, res.data.data)
+    form.value.show_in_home = Number(res.data.data.show_in_home)
+    form.value.show_products_in_home = Number(res.data.data.show_products_in_home)
+    form.value.description = res.data.data.description
+
     if (res.data.data.main_image)
       oldImage.value =
         [{
@@ -178,6 +181,7 @@ onMounted(async () => {
           url: `${baseImageAddress}${res.data.data.icon}`,
         }];
     fetchCategories()
+    loadInit.value = true;
   } catch (err) {
     console.log(err);
 
@@ -187,17 +191,17 @@ onMounted(async () => {
 
 function imageLoaded(files) {
   if (files.length) {
-    form.main_image = files[0].file
+    form.value.main_image = files[0].file
   } else {
-    form.main_image = '';
+    form.value.main_image = '';
   }
 }
 
 function imageLoaded1(files) {
   if (files.length) {
-    form.icon = files[0].file
+    form.value.icon = files[0].file
   } else {
-    form.icon = '';
+    form.value.icon = '';
   }
 }
 async function fetchCategories() {
@@ -218,11 +222,11 @@ const handleSubmit = async () => {
         formData.append(key, Number(form[key]))
       } else if (key != 'icon' && key != "main_image") formData.append(key, form[key])
     }
-    if (form.main_image) {
-      formData.append("main_image", form.main_image)
+    if (form.value.main_image) {
+      formData.append("main_image", form.value.main_image)
     }
     if (form.icon) {
-      formData.append("icon", form.icon)
+      formData.append("icon", form.value.icon)
     }
     formData.append("_method", "PUT")
     await axios.post(`/categories/${route.params.id}`, formData)
