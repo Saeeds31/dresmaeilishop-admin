@@ -1,5 +1,6 @@
 <template>
-    <div class="qpc-wrap" v-if="checkPermission(['product_store'])">
+    <div class="qpc-wrap">
+
         <!-- ============ ستون راست: ادیتور ============ -->
         <main class="qpc-editor">
             <div class="editor-header">
@@ -30,6 +31,12 @@
                         <template v-else-if="line.type === 'title'">
                             <b>{{ line.value }}</b>
                         </template>
+                        <template v-else-if="line.type === 'description'">
+                            <span class="desc-preview">{{ truncate(line.value, 200) }}</span>
+                            <button type="button" class="btn-edit-desc" @click="editDescription" title="ویرایش توضیحات">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                        </template>
                         <template v-else>
                             {{ truncate(line.value, 200) }}
                         </template>
@@ -39,18 +46,37 @@
                 <!-- خط جاری -->
                 <div class="line-current" :class="'line-' + currentLineType">
                     <span class="line-icon"><i :class="lineIcon(currentLineType)"></i></span>
-                    <input ref="inputRef" v-model="currentInput" class="smart-line-input"
-                        :placeholder="currentPlaceholder" enterkeyhint="done" autocomplete="off" autocorrect="off"
-                        autocapitalize="off" spellcheck="false" @keydown.enter.prevent.stop="safeCommit"
-                        @keyup.enter.prevent.stop="safeCommit" @keydown.tab.prevent="handleTab"
-                        @keydown.backspace="handleBackspace" @beforeinput="onBeforeInput" @blur="onBlurInput" />
 
-                    <div v-if="currentLineType === 'category' && suggestions.length" class="suggestions">
-                        <button v-for="s in suggestions" :key="s.id" class="suggestion-chip" type="button"
-                            @mousedown.prevent @click="pickCategory(s)">
-                            <i class="bi bi-tag"></i> {{ s.label }}
-                        </button>
-                    </div>
+                    <!-- 📝 حالت توضیحات: textarea چندخطی -->
+                    <template v-if="currentLineType === 'description'">
+                        <textarea ref="inputRef" v-model="currentInput" class="smart-line-textarea"
+                            :placeholder="currentPlaceholder" rows="3" @keydown.enter="onTextareaEnter"
+                            @keydown.backspace="handleBackspace" @beforeinput="onBeforeInput"></textarea>
+
+                        <div class="desc-actions">
+                            <button type="button" class="btn-finish-desc" @click="finishDescription">
+                                <i class="bi bi-check-lg"></i>
+                                پایان توضیحات
+                            </button>
+                            <span class="desc-hint">یا Shift+Enter</span>
+                        </div>
+                    </template>
+
+                    <!-- بقیه خطوط: input تک‌خطی -->
+                    <template v-else>
+                        <input ref="inputRef" v-model="currentInput" class="smart-line-input"
+                            :placeholder="currentPlaceholder" enterkeyhint="done" autocomplete="off" autocorrect="off"
+                            autocapitalize="off" spellcheck="false" @keydown.enter.prevent.stop="safeCommit"
+                            @keyup.enter.prevent.stop="safeCommit" @keydown.tab.prevent="handleTab"
+                            @keydown.backspace="handleBackspace" @beforeinput="onBeforeInput" @blur="onBlurInput" />
+
+                        <div v-if="currentLineType === 'category' && suggestions.length" class="suggestions">
+                            <button v-for="s in suggestions" :key="s.id" class="suggestion-chip" type="button"
+                                @mousedown.prevent @click="pickCategory(s)">
+                                <i class="bi bi-tag"></i> {{ s.label }}
+                            </button>
+                        </div>
+                    </template>
                 </div>
 
                 <div v-if="parsed.categories.length" class="selected-cats">
@@ -200,10 +226,11 @@
                     <li><code>250000-5%-1405/10/10</code> درصد + تاریخ</li>
                     <li><b>خط ۳:</b> موجودی ← Enter</li>
                     <li><b>خط ۴+:</b> دسته‌بندی‌ها ← Enter خالی</li>
-                    <li><b>بعد:</b> توضیحات</li>
+                    <li><b>توضیحات:</b> Enter=خط جدید، Shift+Enter=پایان</li>
                 </ol>
             </div>
         </aside>
+
     </div>
 </template>
 
@@ -216,7 +243,6 @@ import { toast } from 'vue3-toastify'
 import { useAdmin } from '@/stores/modules/admin'
 
 const store = useAdmin()
-const checkPermission = store.checkPermission
 
 /* ==================== STATE ==================== */
 const currentInput = ref('')
@@ -324,7 +350,7 @@ const currentPlaceholder = computed(() => {
         case 'price': return 'مثلاً 250000 | 250000-5% | 250000-200000-1405/10/10'
         case 'stock': return 'موجودی (عدد)...'
         case 'category': return 'نام دسته‌بندی... یا Tab برای انتخاب اولین پیشنهاد'
-        case 'description': return 'توضیحات کامل محصول...'
+        case 'description': return 'توضیحات کامل محصول... (Enter = خط جدید، Shift+Enter = پایان)'
         default: return ''
     }
 })
@@ -359,6 +385,9 @@ function safeCommit() {
 }
 
 function onBeforeInput(e) {
+    // در حالت توضیحات، اجازه بده Enter خط جدید بسازه
+    if (currentLineType.value === 'description') return
+
     if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') {
         e.preventDefault()
         safeCommit()
@@ -397,7 +426,9 @@ function handleBackspace(e) {
         } else if (last.type === 'stock') parsed.stock = null
         else if (last.type === 'category') {
             parsed.categories = parsed.categories.filter((c) => c.label !== last.value)
-        } else if (last.type === 'description') parsed.description = ''
+        } else if (last.type === 'description') {
+            parsed.description = ''
+        }
 
         currentInput.value = last.value ?? ''
         nextTick(() => focusInput())
@@ -440,9 +471,6 @@ function commitLine() {
             parsed.categories.push(found)
             committedLines.value.push({ type: 'category', value: found.label })
         }
-    } else if (type === 'description') {
-        parsed.description = raw
-        committedLines.value.push({ type: 'description', value: raw })
     }
 
     currentInput.value = ''
@@ -470,6 +498,48 @@ function handleTab() {
     if (currentLineType.value === 'category' && suggestions.value.length) {
         pickCategory(suggestions.value[0])
     }
+}
+
+/* ==================== 📝 توضیحات چندخطی ==================== */
+
+// Enter در textarea = خط جدید (پیش‌فرض) — فقط Shift+Enter یا دکمه پایان، commit می‌کنه
+function onTextareaEnter(e) {
+    if (e.shiftKey) {
+        e.preventDefault()
+        finishDescription()
+    }
+    // بدون Shift → رفتار پیش‌فرض (خط جدید)
+}
+
+// پایان توضیحات و commit
+function finishDescription() {
+    const raw = currentInput.value.trim()
+    if (!raw) {
+        currentInput.value = ''
+        return
+    }
+
+    parsed.description = raw
+    committedLines.value = committedLines.value.filter((l) => l.type !== 'description')
+    committedLines.value.push({ type: 'description', value: raw })
+    currentInput.value = ''
+
+    nextTick(() => {
+        const editor = document.querySelector('.smart-input')
+        if (editor) {
+            editor.scrollTop = editor.scrollHeight
+        }
+    })
+}
+
+// دکمه ویرایش توضیحات (از خط commit‌شده)
+function editDescription() {
+    const descLine = committedLines.value.find((l) => l.type === 'description')
+    if (!descLine) return
+    currentInput.value = descLine.value
+    committedLines.value = committedLines.value.filter((l) => l.type !== 'description')
+    parsed.description = ''
+    nextTick(() => focusInput())
 }
 
 /* ==================== PRICE PARSER ==================== */
@@ -979,6 +1049,8 @@ function resetAll() {
     min-height: 200px;
     margin-bottom: 20px;
     transition: border-color 0.2s;
+    max-height: 60vh;
+    overflow-y: auto;
 }
 
 .smart-input:focus-within {
@@ -1073,6 +1145,7 @@ function resetAll() {
 .line-current {
     padding: 8px 0;
     flex-wrap: wrap;
+    align-items: flex-start;
 }
 
 .smart-line-input {
@@ -1089,6 +1162,92 @@ function resetAll() {
 
 .smart-line-input::placeholder {
     color: #94a3b8;
+}
+
+/* ==================== 📝 توضیحات چندخطی ==================== */
+.smart-line-textarea {
+    flex: 1;
+    width: 100%;
+    min-height: 90px;
+    max-height: 240px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    color: #0f172a;
+    outline: none;
+    resize: vertical;
+    line-height: 1.7;
+    direction: rtl;
+}
+
+.smart-line-textarea:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.smart-line-textarea::placeholder {
+    color: #94a3b8;
+}
+
+.desc-actions {
+    flex-basis: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.btn-finish-desc {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: transform 0.1s;
+}
+
+.btn-finish-desc:hover {
+    transform: translateY(-1px);
+}
+
+.btn-finish-desc:active {
+    transform: translateY(0);
+}
+
+.desc-hint {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.desc-preview {
+    white-space: pre-line;
+}
+
+.btn-edit-desc {
+    background: transparent;
+    border: 1px solid #cbd5e1;
+    color: #64748b;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+    margin-right: 8px;
+}
+
+.btn-edit-desc:hover {
+    background: #eff6ff;
+    border-color: #3b82f6;
+    color: #3b82f6;
 }
 
 .cat-box {
@@ -1432,6 +1591,7 @@ function resetAll() {
 
     .smart-input {
         padding: 10px;
+        max-height: 55vh;
     }
 
     .line-committed,
@@ -1458,6 +1618,11 @@ function resetAll() {
         width: 100%;
     }
 
+    .smart-line-textarea {
+        font-size: 16px !important;
+        min-height: 120px;
+    }
+
     .line-current {
         flex-wrap: wrap;
     }
@@ -1472,7 +1637,11 @@ function resetAll() {
         font-size: 13px;
     }
 
-    /* Treeselect روی موبایل ارتفاع مناسب */
+    .btn-finish-desc {
+        padding: 10px 16px;
+        font-size: 14px;
+    }
+
     .vi-group :deep(.vue-treeselect__control) {
         min-height: 44px;
     }
